@@ -1,0 +1,12 @@
+{
+  "name": "Coupon Box",
+  "short_name": "Coupon Box",
+  "description": "レシートクーポンを撮影して端末内に保存・管理",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8f5",
+  "theme_color": "#173b32",
+  "icons": [{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
