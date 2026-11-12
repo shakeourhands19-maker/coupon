@@ -23,7 +23,7 @@ var DB='coupon-box-local',TABLE='items',db=null,photoBlob=null,editId=null,worke
 function el(id){return document.getElementById(id)}function toast(s){var t=el('toast');t.textContent=s;t.style.display='block';setTimeout(function(){t.style.display='none'},2600)}
 function openDB(){return new Promise(function(ok,no){var r=indexedDB.open(DB,1);r.onupgradeneeded=function(){r.result.createObjectStore(TABLE,{keyPath:'id'})};r.onsuccess=function(){ok(r.result)};r.onerror=function(){no(r.error)}})}
 function store(mode){return db.transaction(TABLE,mode).objectStore(TABLE)}function getAll(){return new Promise(function(ok,no){var r=store('readonly').getAll();r.onsuccess=function(){ok(r.result)};r.onerror=function(){no(r.error)}})}
-function saveItem(x){return new Promise(function(ok,no){var r=store('readwrite').put(x);r.onsuccess=ok;r.onerror=function(){no(r.error)}})}function deleteItem(id){return new Promise(function(ok){var r=store('readwrite').delete(id);r.onsuccess=ok})}
+function saveItem(x){return new Promise(function(ok,no){var tx=db.transaction(TABLE,'readwrite');var r=tx.objectStore(TABLE).put(x);var err=null;r.onerror=function(){err=r.error};tx.oncomplete=function(){ok()};tx.onerror=function(){no(err||tx.error||new Error('保存に失敗しました'))};tx.onabort=function(){no(err||tx.error||new Error('保存が中断されました'))}})}function deleteItem(id){return new Promise(function(ok){var r=store('readwrite').delete(id);r.onsuccess=ok})}
 function esc(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function left(s){if(!s)return null;return Math.ceil((new Date(s+'T23:59:59')-new Date())/86400000)}
 function url(blob){return URL.createObjectURL(blob)}
@@ -47,6 +47,6 @@ el('backup').onclick=async function(){var a=await getAll(),out=[];for(var i=0;i<
 function restore(){el('restore').click()}el('backup').oncontextmenu=function(e){e.preventDefault();restore()};var timer;el('backup').ontouchstart=function(){timer=setTimeout(restore,650)};el('backup').ontouchend=function(){clearTimeout(timer)};
 el('restore').onchange=async function(e){var f=e.target.files[0];if(!f)return;try{var d=JSON.parse(await f.text());if(d.format!=='coupon-box-backup-v1'||!Array.isArray(d.coupons))throw Error();if(!confirm(d.coupons.length+'件を既存データに追加しますか？'))return;for(var i=0;i<d.coupons.length;i++){var x=d.coupons[i];await saveItem({id:x.id,store:x.store,title:x.title,expiry:x.expiry,notes:x.notes,code:x.code,used:x.used,createdAt:x.createdAt,photo:await fromData(x.photoData)})}render();toast('復元しました')}catch(e){alert('バックアップを読み込めませんでした')}el('restore').value=''};
 if('serviceWorker'in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(console.warn)});
-openDB().then(function(d){db=d;render()}).catch(function(e){console.error(e);toast('端末内の保存領域を開けません')});
+openDB().then(async function(d){db=d;try{if(navigator.storage&&navigator.storage.persist){var persisted=await navigator.storage.persist();console.log('永続ストレージ:',persisted?'許可':'未許可')}}catch(e){console.warn('永続ストレージ要求に失敗:',e)}render()}).catch(function(e){console.error(e);toast('端末内の保存領域を開けません')});
 })();
 </script></body></html>
